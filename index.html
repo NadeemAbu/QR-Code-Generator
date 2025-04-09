@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>QR Code Generator</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f0f0f0;
+      padding: 30px;
+      display: flex;
+      justify-content: center;
+    }
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      max-width: 750px;
+      width: 100%;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    }
+    input, select, button {
+      width: 100%;
+      padding: 10px;
+      margin: 10px 0 20px 0;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      font-size: 1rem;
+    }
+    label {
+      font-weight: bold;
+      display: block;
+    }
+    button {
+      background-color: #28a745;
+      color: white;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #218838;
+    }
+    #preview {
+      display: none;
+      text-align: center;
+      margin-top: 30px;
+    }
+    .print-area {
+      width: 794px;  /* A3 portrait width at 96dpi */
+      height: 1123px; /* A3 portrait height at 96dpi */
+      padding: 60px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      border-radius: 12px;
+      box-sizing: border-box;
+      background-color: white;
+      position: relative;
+    }
+    .event-title {
+      font-size: 28px;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+    .event-desc {
+      font-size: 16px;
+      margin-bottom: 20px;
+    }
+    #downloadBtn {
+      display: none;
+      text-decoration: none;
+      background: #007BFF;
+      color: white;
+      padding: 12px 20px;
+      border-radius: 8px;
+      margin-top: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Custom QR Code Generator</h2>
+
+    <label>Event Name</label>
+    <input type="text" id="eventName" placeholder="e.g. Music Festival 2025">
+
+    <label>Description (optional)</label>
+    <input type="text" id="eventDesc" placeholder="e.g. Scan for lineup and tickets">
+
+    <label>Link or Text for QR Code</label>
+    <input type="text" id="qrText" placeholder="https://yourevent.com">
+
+    <label>Background Type</label>
+    <select id="bgType" onchange="toggleBgInput()">
+      <option value="color">Color</option>
+      <option value="image">Image</option>
+    </select>
+
+    <div id="bgColorContainer">
+      <label>Background Color (Hex)</label>
+      <input type="text" id="bgColor" value="#ffffff" placeholder="#ffffff">
+    </div>
+
+    <div id="bgImageContainer" style="display: none;">
+      <label>Upload Background Image</label>
+      <input type="file" id="bgImageInput" accept="image/*">
+    </div>
+
+    <label>Text Color (Hex)</label>
+    <input type="text" id="textColor" value="#000000" placeholder="#000000">
+
+    <label>QR Code Color (Hex)</label>
+    <input type="text" id="qrColor" value="#000000" placeholder="#000000">
+
+    <label>QR Code Background (Hex)</label>
+    <input type="text" id="qrBgColor" value="#ffffff" placeholder="#ffffff">
+
+    <button onclick="generate()">Generate QR Code</button>
+
+    <div id="preview">
+      <div id="printCanvasArea" class="print-area">
+        <div id="eventLabel" class="event-title"></div>
+        <div id="eventDescLabel" class="event-desc"></div>
+        <div id="qrcodeCanvas"></div>
+      </div>
+      <a id="downloadBtn">Download QR Code</a>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+  <script>
+    function toggleBgInput() {
+      const type = document.getElementById("bgType").value;
+      document.getElementById("bgColorContainer").style.display = type === "color" ? "block" : "none";
+      document.getElementById("bgImageContainer").style.display = type === "image" ? "block" : "none";
+    }
+
+    function generate() {
+      const eventName = document.getElementById('eventName').value.trim() || 'qr-code';
+      const eventDesc = document.getElementById('eventDesc').value.trim();
+      const qrText = document.getElementById('qrText').value.trim();
+      const textColor = document.getElementById('textColor').value || '#000000';
+      const qrColor = document.getElementById('qrColor').value || '#000000';
+      const qrBgColor = document.getElementById('qrBgColor').value || '#ffffff';
+      const bgType = document.getElementById('bgType').value;
+      const bgColor = document.getElementById('bgColor').value || '#ffffff';
+      const bgImageInput = document.getElementById('bgImageInput');
+
+      if (!qrText) return alert('Please enter text or URL for QR code.');
+
+      const area = document.getElementById('printCanvasArea');
+      const title = document.getElementById('eventLabel');
+      const desc = document.getElementById('eventDescLabel');
+      title.innerText = eventName;
+      desc.innerText = eventDesc;
+      title.style.color = textColor;
+      desc.style.color = textColor;
+
+      if (bgType === 'color') {
+        area.style.background = bgColor;
+        area.style.backgroundImage = 'none';
+      }
+
+      // Clear previous QR code
+      const qrcodeCanvas = document.getElementById('qrcodeCanvas');
+      qrcodeCanvas.innerHTML = '';
+
+      // Show preview early
+      document.getElementById('preview').style.display = 'block';
+
+      // Generate QR code
+      new QRCode(qrcodeCanvas, {
+        text: qrText,
+        width: 300,
+        height: 300,
+        colorDark: qrColor,
+        colorLight: qrBgColor,
+        correctLevel: QRCode.CorrectLevel.H
+      });
+
+      setTimeout(() => {
+        if (bgType === 'image' && bgImageInput.files[0]) {
+          const reader = new FileReader();
+          reader.onload = function (e) {
+            area.style.backgroundImage = `url(${e.target.result})`;
+            area.style.backgroundSize = 'cover';
+            area.style.backgroundPosition = 'center';
+            renderAndDownload(eventName);
+          };
+          reader.readAsDataURL(bgImageInput.files[0]);
+        } else {
+          renderAndDownload(eventName);
+        }
+      }, 600);
+    }
+
+    function renderAndDownload(eventName) {
+      const area = document.getElementById('printCanvasArea');
+      const downloadBtn = document.getElementById('downloadBtn');
+
+      html2canvas(area, { scale: 3 }).then(canvas => {
+        canvas.toBlob(function (blob) {
+          const url = URL.createObjectURL(blob);
+          downloadBtn.href = url;
+          downloadBtn.download = `${eventName.replace(/\s+/g, '_')}_QR.png`;
+          downloadBtn.style.display = 'inline-block';
+
+          // Revoke after click to free memory
+          downloadBtn.onclick = () => {
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+          };
+        }, "image/png");
+      });
+    }
+  </script>
+
+</body>
+</html>
