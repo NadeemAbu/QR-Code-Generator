@@ -11,3 +11,4 @@ You can change the following:
 3. Header colour
 4. Background color / Image
 5. Text colour
+6. Change link to send the users to
